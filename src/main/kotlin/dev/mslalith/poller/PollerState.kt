@@ -1,3 +1,5 @@
+package dev.mslalith.poller
+
 /**
  * Used to hold the state of [IPoller]
  */

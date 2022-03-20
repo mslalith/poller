@@ -1,3 +1,5 @@
+package dev.mslalith.poller
+
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -19,7 +21,7 @@ import kotlinx.coroutines.launch
  * @param pollInterval Time in millis for a poll to every after
  * @param pollRepeatCount Number of times the poll should happen
  */
-internal class Poller<T>(
+class Poller<T> private constructor(
     private val coroutineScope: CoroutineScope,
     private val pollInterval: Long,
     private val pollRepeatCount: Int
