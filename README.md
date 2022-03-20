@@ -10,10 +10,6 @@ Poller is a simple Kotlin library which runs a certain task at a regular interva
 
 ## Usage
 
-The entrypoint for the library is the `test` extension for `Flow<T>` which accepts a validation
-block. Like `collect`, `test` is a suspending function that will not return until the flow is
-complete or canceled.
-
 ### Create Poller
 
 Use `Poller.create` method to create new Poller. This takes<br>
