@@ -2,11 +2,11 @@
 
 Poller is a simple Kotlin library which runs a certain task at a regular interval
 
-## Download
-
-```kotlin
-testImplementation("app.cash.turbine:turbine:0.7.0")
-```
+[//]: # (## Download)
+[//]: # ()
+[//]: # (```kotlin)
+[//]: # (testImplementation&#40;"app.cash.turbine:turbine:0.7.0"&#41;)
+[//]: # (```)
 
 ## Usage
 
