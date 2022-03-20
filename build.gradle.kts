@@ -1,8 +1,9 @@
+import java.util.Properties
+
 plugins {
     kotlin("jvm") version "1.6.10"
     `maven-publish`
     signing
-    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
 }
 
 group = "dev.mslalith"
@@ -30,8 +31,9 @@ object Meta {
     const val description = "Poller is a simple Kotlin library which runs a certain task at a regular interval"
     const val license = "Apache-2.0"
     const val githubRepo = "mslalith/poller"
-    const val release = "https://s01.oss.sonatype.org/service/local/"
-    const val snapshot = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+    const val localUrl = "https://s01.oss.sonatype.org/service/local/"
+    const val releaseUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+    const val snapshotUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
 }
 
 val sourcesJar by tasks.registering(Jar::class) {
@@ -45,16 +47,35 @@ val javadocJar by tasks.creating(Jar::class) {
     archiveClassifier.set("javadoc")
 }
 
-signing {
-    val signingKey = providers.environmentVariable("GPG_SIGNING_KEY").forUseAtConfigurationTime()
-    val signingPassphrase = providers.environmentVariable("GPG_SIGNING_PASSPHRASE").forUseAtConfigurationTime()
-    if (signingKey.isPresent && signingPassphrase.isPresent) {
-        useInMemoryPgpKeys(signingKey.get(), signingPassphrase.get())
-        sign(publishing.publications)
+val secretPropsFile = project.rootProject.file("local.properties")
+val properties = if (secretPropsFile.exists()) {
+    secretPropsFile.reader().use {
+        Properties().apply { load(it) }
     }
+} else null
+
+fun getExtraString(name: String) = properties?.toMap()?.get(name)?.toString()
+
+val sonatypeUsername: String? = getExtraString("ossrhUsername")
+val sonatypePassword: String? = getExtraString("ossrhPassword")
+
+signing {
+    useGpgCmd()
+    sign(publishing.publications)
 }
 
 publishing {
+    repositories {
+        maven {
+            name = "poller"
+            setUrl(if (version.toString().contains("SNAPSHOT")) Meta.snapshotUrl else Meta.releaseUrl)
+            credentials {
+                username = sonatypeUsername
+                password = sonatypePassword
+            }
+        }
+    }
+
     publications {
         create<MavenPublication>("maven") {
             groupId = project.group.toString()
@@ -77,6 +98,7 @@ publishing {
                     developer {
                         id.set("mslalith")
                         name.set("M S Lalith")
+                        email.set("santosh2397@gmail.com")
                         organization.set("M S Lalith")
                         organizationUrl.set("https://mslalith.dev")
                     }
@@ -89,21 +111,6 @@ publishing {
                 issueManagement {
                     url.set("https://github.com/${Meta.githubRepo}/issues")
                 }
-            }
-        }
-    }
-}
-
-nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl.set(uri(Meta.release))
-            snapshotRepositoryUrl.set(uri(Meta.snapshot))
-            val ossrhUsername = providers.environmentVariable("OSSRH_USERNAME").forUseAtConfigurationTime()
-            val ossrhPassword = providers.environmentVariable("OSSRH_PASSWORD").forUseAtConfigurationTime()
-            if (ossrhUsername.isPresent && ossrhPassword.isPresent) {
-                username.set(ossrhUsername.get())
-                password.set(ossrhPassword.get())
             }
         }
     }
