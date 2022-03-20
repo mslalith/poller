@@ -34,19 +34,35 @@ object Meta {
     const val snapshot = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
 }
 
-publishing {
-    repositories {
-        maven {
+val sourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    from(kotlin.sourceSets.main.get().kotlin)
+}
 
-        }
+val javadocJar by tasks.creating(Jar::class) {
+    group = JavaBasePlugin.DOCUMENTATION_GROUP
+    description = "Assembles Javadoc JAR"
+    archiveClassifier.set("javadoc")
+}
+
+signing {
+    val signingKey = providers.environmentVariable("GPG_SIGNING_KEY").forUseAtConfigurationTime()
+    val signingPassphrase = providers.environmentVariable("GPG_SIGNING_PASSPHRASE").forUseAtConfigurationTime()
+    if (signingKey.isPresent && signingPassphrase.isPresent) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassphrase.get())
+        sign(publishing.publications)
     }
+}
 
+publishing {
     publications {
         create<MavenPublication>("maven") {
             groupId = project.group.toString()
             artifactId = project.name
             version = project.version.toString()
             from(components["kotlin"])
+            artifact(tasks["sourcesJar"])
+            artifact(tasks["javadocJar"])
             pom {
                 name.set(project.name)
                 description.set(Meta.description)
