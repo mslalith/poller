@@ -2,11 +2,10 @@
 
 Poller is a simple Kotlin library which runs a certain task at a regular interval
 
-[//]: # (## Download)
-[//]: # ()
-[//]: # (```kotlin)
-[//]: # (testImplementation&#40;"app.cash.turbine:turbine:0.7.0"&#41;)
-[//]: # (```)
+## Download
+```kotlin
+implementation("dev.mslalith:poller:0.1")
+```
 
 ## Usage
 
@@ -65,8 +64,7 @@ val job = poller.poll {
 
 ### Stop Polling
 
-Calling `stop` will stop the poll. It takes a `pollBlock` which executes on every poll.<br>
-The advantage with this is that your poll logic can be conditional if needed
+Calling `stop` will stop the poll.
 
 ```kotlin
 poller.stop()
