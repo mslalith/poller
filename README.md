@@ -25,13 +25,13 @@ val poller: Poller<Int> = Poller.indefinite(
 
 `coroutineScope`  - The scope in which the poll should execute<br>
 `pollInterval`    - Time in millis for the next poll to execute after<br>
-`pollRepeatCount` - Number of times for the poll to execute
+`pollRepeatCount` - Number of times for the poll to execute<br>
 `maxRetries`      - Maximum number of times the poll can retry within the poll lifecycle
 
 For example, let's take `pollInterval = 4_000` and `pollRepeatCount = 5`<br>
 Then the total time of this poll would be `20_000 (4_000 * 5)`
 
-Poll will be stopped if retries are exhausted or its lifetime expires
+Poll will be stopped if retries are exhausted or its lifetime expires.
 
 ```kotlin
 val poller: Poller<Int> = Poller.finite(
