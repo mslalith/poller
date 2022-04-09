@@ -1,7 +1,7 @@
 package dev.mslalith.poller
 
 /**
- * Used to hold the state of [IPoller]
+ * Used to hold the state of [Poller]
  */
 sealed class PollerState<out T> {
     object Initial : PollerState<Nothing>()

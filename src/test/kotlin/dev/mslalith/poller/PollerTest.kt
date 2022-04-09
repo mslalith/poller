@@ -13,16 +13,49 @@ import org.junit.jupiter.api.Test
 @ExperimentalCoroutinesApi
 internal class PollerTest {
 
-    private fun TestScope.createPoller(): IPoller<Int> = Poller.create(
+    private fun TestScope.createFinitePoller(maxRetries: Int = -1): Poller<Int> = Poller.finite(
         coroutineScope = this,
         pollInterval = 1_000,
-        pollRepeatCount = 4
+        pollRepeatCount = 4,
+        maxRetries = maxRetries
     )
+
+    private fun TestScope.createIndefinitePoller(): Poller<Int> = Poller.indefinite(
+        coroutineScope = this,
+        pollInterval = 1_000
+    )
+
+    @Test
+
+    fun `run indefinite poller & verify poll behaviour`() = runTest {
+        val testScope = TestScope()
+        val poller = testScope.createIndefinitePoller()
+        var count = 1
+        assertThat(poller.canPoll()).isFalse()
+        assertThat(poller.isPolling()).isFalse()
+        poller.poll { count++ }
+        assertThat(poller.canPoll()).isTrue()
+        assertThat(poller.isPolling()).isTrue()
+        testScope.advanceTimeBy(10_000)
+        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.InProgress(10))
+        testScope.advanceTimeBy(10_000)
+        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.InProgress(20))
+        testScope.advanceTimeBy(10_000)
+        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.InProgress(30))
+
+        assertThat(poller.isPolling()).isTrue()
+        assertThat(poller.canPoll()).isTrue()
+        poller.stop()
+        testScope.advanceTimeBy(1_000)
+        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.Cancelled)
+        assertThat(poller.isPolling()).isFalse()
+        assertThat(poller.canPoll()).isFalse()
+    }
 
     @Test
     fun `cancel coroutine scope before completion of poll & verify poll state`() = runTest {
         val testScope = TestScope()
-        val poller = testScope.createPoller()
+        val poller = testScope.createFinitePoller()
         var count = 1
         poller.poll { count++ }
         testScope.advanceTimeBy(2_000)
@@ -35,7 +68,7 @@ internal class PollerTest {
 
     @Test
     fun `cancel poll before it's completion & verify poll state`() = runTest {
-        val poller = createPoller()
+        val poller = createFinitePoller()
         var count = 1
         poller.poll { count++ }
         advanceTimeBy(2_000)
@@ -48,7 +81,7 @@ internal class PollerTest {
 
     @Test
     fun `wait for poll to complete & verify poll state`() = runTest {
-        val poller = createPoller()
+        val poller = createFinitePoller()
         var count = 1
         poller.poll { count++ }
         advanceTimeBy(4_000)
@@ -61,7 +94,7 @@ internal class PollerTest {
 
     @Test
     fun `exceed the poll time & verify poll state`() = runTest {
-        val poller = createPoller()
+        val poller = createFinitePoller()
         var count = 1
         poller.poll { count++ }
         advanceTimeBy(5_000)
@@ -74,7 +107,7 @@ internal class PollerTest {
 
     @Test
     fun `poll every second & verify that it can still be polled in between`() = runTest {
-        val poller = createPoller()
+        val poller = createFinitePoller()
         var count = 1
         poller.poll { count++ }
         advanceTimeBy(2_000)
@@ -85,7 +118,7 @@ internal class PollerTest {
 
     @Test
     fun `wait until poll completes & verify that it cannot be polled`() = runTest {
-        val poller = createPoller()
+        val poller = createFinitePoller()
         var count = 1
         poller.poll { count++ }
         advanceTimeBy(5_000)
