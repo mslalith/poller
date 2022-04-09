@@ -9,7 +9,10 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface Poller<T> {
 
-    companion object
+    companion object {
+        const val NO_REPEAT = -2
+        const val NO_RETRIES = -1
+    }
 
     /**
      * Holds the current [PollerState] of the Poll
@@ -61,8 +64,8 @@ fun <T> Poller.Companion.indefinite(
 ): Poller<T> = PollerImpl(
     coroutineScope = coroutineScope,
     pollInterval = pollInterval,
-    pollRepeatCount = PollerImpl.NO_REPEAT,
-    maxRetries = PollerImpl.NO_RETRIES
+    pollRepeatCount = NO_REPEAT,
+    maxRetries = NO_RETRIES
 )
 
 
@@ -87,7 +90,7 @@ fun <T> Poller.Companion.finite(
     coroutineScope: CoroutineScope,
     pollInterval: Long,
     pollRepeatCount: Int,
-    maxRetries: Int = PollerImpl.NO_RETRIES
+    maxRetries: Int = NO_RETRIES
 ): Poller<T> = PollerImpl(
     coroutineScope = coroutineScope,
     pollInterval = pollInterval,

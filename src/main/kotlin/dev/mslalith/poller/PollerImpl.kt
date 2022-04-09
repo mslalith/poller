@@ -1,5 +1,7 @@
 package dev.mslalith.poller
 
+import dev.mslalith.poller.Poller.Companion.NO_REPEAT
+import dev.mslalith.poller.Poller.Companion.NO_RETRIES
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -27,11 +29,6 @@ internal class PollerImpl<T>(
     private val pollRepeatCount: Int,
     private val maxRetries: Int
 ) : Poller<T> {
-
-    companion object {
-        internal const val NO_REPEAT = -2
-        internal const val NO_RETRIES = -1
-    }
 
     private val _pollerStateFlow: MutableStateFlow<PollerState<T>> = MutableStateFlow(PollerState.Initial)
 
