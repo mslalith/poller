@@ -4,27 +4,41 @@ Poller is a simple Kotlin library which runs a certain task at a regular interva
 
 ## Download
 ```kotlin
-implementation("dev.mslalith:poller:0.1")
+implementation("dev.mslalith:poller:0.2.0")
 ```
 
 ## Usage
 
 ### Create Poller
 
-Use `Poller.create` method to create new Poller. This takes<br>
+An instance to Poller can be created in two ways:
+
+- Use `Poller.indefinite` method to run the forever until stopped explicitly
+```kotlin
+val poller: Poller<Int> = Poller.indefinite(
+    coroutineScope = coroutineScope,
+    pollInterval = 1_000
+)
+```
+
+- Use `Poller.create` method to create new Poller. This takes<br>
 
 `coroutineScope`  - The scope in which the poll should execute<br>
 `pollInterval`    - Time in millis for the next poll to execute after<br>
 `pollRepeatCount` - Number of times for the poll to execute
+`maxRetries`      - Maximum number of times the poll can retry within the poll lifecycle
 
 For example, let's take `pollInterval = 4_000` and `pollRepeatCount = 5`<br>
 Then the total time of this poll would be `20_000 (4_000 * 5)`
 
+Poll will be stopped if retries are exhausted or its lifetime expires
+
 ```kotlin
-val poller: IPoller<Int> = Poller.create(
+val poller: Poller<Int> = Poller.finite(
     coroutineScope = coroutineScope,
     pollInterval = 1_000,
-    pollRepeatCount = 4
+    pollRepeatCount = 4,
+    maxRetries = 2
 )
 ```
 
