@@ -1,7 +1,7 @@
 import java.util.Properties
 
 plugins {
-    kotlin("jvm") version "1.6.10"
+    kotlin("jvm") version "1.6.20"
     `maven-publish`
     signing
 }
@@ -19,10 +19,10 @@ tasks.test {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
 
     implementation("org.junit.jupiter:junit-jupiter:5.8.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.1")
     testImplementation("app.cash.turbine:turbine:0.7.0")
     testImplementation("com.google.truth:truth:1.1.3")
 }
