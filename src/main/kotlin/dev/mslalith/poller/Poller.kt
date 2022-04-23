@@ -1,5 +1,6 @@
 package dev.mslalith.poller
 
+import dev.mslalith.poller.strategy.PollStrategy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
@@ -9,10 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface Poller<T> {
 
-    companion object {
-        const val NO_REPEAT = -2
-        const val NO_RETRIES = -1
-    }
+    companion object
 
     /**
      * Holds the current [PollerState] of the Poll
@@ -27,14 +25,14 @@ interface Poller<T> {
     fun poll(pollBlock: suspend () -> T): Job
 
     /**
-     * Tells whether the poll is running or not
-     */
-    fun isPolling(): Boolean
-
-    /**
      * Determines whether the poll can continue or not
      */
     fun canPoll(): Boolean
+
+    /**
+     * Tells whether the poll is running or not
+     */
+    fun isPolling(): Boolean
 
     /**
      * Stops the poll
@@ -51,49 +49,18 @@ fun <T> Poller<T>.stopIfPolling() {
 }
 
 /**
- * Create a Poller which runs indefinitely until
- * - stopped explicitly
- * - [coroutineScope] gets cancelled
+ * Create a new Poller instance
  *
  * @param coroutineScope The scope in which the poll should execute
  * @param pollInterval Time in millis for the poll to run after
+ * @param pollStrategy The strategy to continue the poll
  */
-fun <T> Poller.Companion.indefinite(
-    coroutineScope: CoroutineScope,
-    pollInterval: Long
-): Poller<T> = PollerImpl(
-    coroutineScope = coroutineScope,
-    pollInterval = pollInterval,
-    pollRepeatCount = NO_REPEAT,
-    maxRetries = NO_RETRIES
-)
-
-
-/**
- * A concrete implementation of [PollerImpl]. Handles the execution of a poll
- *
- * For example, let's take `pollInterval = 4_000` and `pollRepeatCount = 5`
- *
- * Then the total lifetime of this poll would be `20_000 (4_000 * 5)`
- *
- * Poll will be considered complete if either
- * - poll completes successfully
- * - exhausts number of retries before its lifetime
- * - exhausts its time
- *
- * @param coroutineScope The scope in which the poll should execute
- * @param pollInterval Time in millis for the poll to run after
- * @param pollRepeatCount Number of times the poll should happen
- * @param maxRetries Maximum number of times the poll can retry within the poll lifecycle
- */
-fun <T> Poller.Companion.finite(
+fun <T> Poller.Companion.new(
     coroutineScope: CoroutineScope,
     pollInterval: Long,
-    pollRepeatCount: Int,
-    maxRetries: Int = NO_RETRIES
+    pollStrategy: PollStrategy
 ): Poller<T> = PollerImpl(
     coroutineScope = coroutineScope,
     pollInterval = pollInterval,
-    pollRepeatCount = pollRepeatCount,
-    maxRetries = maxRetries
+    pollStrategy = pollStrategy
 )

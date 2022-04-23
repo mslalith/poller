@@ -1,7 +1,6 @@
 package dev.mslalith.poller
 
-import dev.mslalith.poller.Poller.Companion.NO_REPEAT
-import dev.mslalith.poller.Poller.Companion.NO_RETRIES
+import dev.mslalith.poller.strategy.PollStrategy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -21,13 +20,12 @@ import kotlinx.coroutines.launch
  *
  * @param coroutineScope The scope in which the poll should execute
  * @param pollInterval Time in millis for a poll to every after
- * @param pollRepeatCount Number of times the poll should happen
+ * @param pollStrategy The strategy to use for the poll to continue
  */
 internal class PollerImpl<T>(
     private val coroutineScope: CoroutineScope,
     private val pollInterval: Long,
-    private val pollRepeatCount: Int,
-    private val maxRetries: Int
+    private val pollStrategy: PollStrategy
 ) : Poller<T> {
 
     private val _pollerStateFlow: MutableStateFlow<PollerState<T>> = MutableStateFlow(PollerState.Initial)
@@ -37,18 +35,18 @@ internal class PollerImpl<T>(
 
     private var pollerJob: Job? = null
     private var isPolling: Boolean = false
-    private var currentPollCount: Int = 1
+    private var elapsedPollTime: Long = 0
 
     override fun poll(pollBlock: suspend () -> T): Job {
         isPolling = true
-        currentPollCount = 1
+        elapsedPollTime = 0
 
         return coroutineScope.launch {
             while (isActive && canPoll()) {
                 val pollResult = pollBlock()
                 _pollerStateFlow.value = PollerState.InProgress(pollResult)
 
-                currentPollCount++
+                elapsedPollTime += pollInterval
                 delay(pollInterval)
             }
 
@@ -67,11 +65,7 @@ internal class PollerImpl<T>(
 
     override fun isPolling(): Boolean = isPolling
 
-    override fun canPoll(): Boolean = isPolling && !(hasRetiresExhausted() || hasTimeExhausted())
-
-    private fun hasTimeExhausted(): Boolean = if (pollRepeatCount == NO_REPEAT) false else currentPollCount > pollRepeatCount
-
-    private fun hasRetiresExhausted(): Boolean = if (maxRetries == NO_RETRIES) false else currentPollCount > maxRetries
+    override fun canPoll(): Boolean = isPolling && pollStrategy.canPoll(pollInterval, elapsedPollTime)
 
     override fun stop() {
         isPolling = false
