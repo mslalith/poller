@@ -2,6 +2,8 @@ package dev.mslalith.poller
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.mslalith.poller.strategy.RetryLimitStrategy
+import dev.mslalith.poller.strategy.TimeoutStrategy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.TestScope
@@ -13,44 +15,17 @@ import org.junit.jupiter.api.Test
 @ExperimentalCoroutinesApi
 internal class PollerTest {
 
-    private fun TestScope.createFinitePoller(maxRetries: Int = -1): Poller<Int> = Poller.finite(
+    private fun TestScope.createFinitePoller(): Poller<Int> = Poller.new(
         coroutineScope = this,
         pollInterval = 1_000,
-        pollRepeatCount = 4,
-        maxRetries = maxRetries
+        pollStrategy = TimeoutStrategy(timeOutInMillis = 4_000)
     )
 
-    private fun TestScope.createIndefinitePoller(): Poller<Int> = Poller.indefinite(
+    private fun TestScope.createRetryLimitPoller(maxRetries: Int): Poller<Int> = Poller.new(
         coroutineScope = this,
-        pollInterval = 1_000
+        pollInterval = 1_000,
+        pollStrategy = RetryLimitStrategy(maxRetries)
     )
-
-    @Test
-
-    fun `run indefinite poller & verify poll behaviour`() = runTest {
-        val testScope = TestScope()
-        val poller = testScope.createIndefinitePoller()
-        var count = 1
-        assertThat(poller.canPoll()).isFalse()
-        assertThat(poller.isPolling()).isFalse()
-        poller.poll { count++ }
-        assertThat(poller.canPoll()).isTrue()
-        assertThat(poller.isPolling()).isTrue()
-        testScope.advanceTimeBy(10_000)
-        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.InProgress(10))
-        testScope.advanceTimeBy(10_000)
-        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.InProgress(20))
-        testScope.advanceTimeBy(10_000)
-        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.InProgress(30))
-
-        assertThat(poller.isPolling()).isTrue()
-        assertThat(poller.canPoll()).isTrue()
-        poller.stop()
-        testScope.advanceTimeBy(1_000)
-        assertThat(poller.pollerStateFlow.value).isEqualTo(PollerState.Cancelled)
-        assertThat(poller.isPolling()).isFalse()
-        assertThat(poller.canPoll()).isFalse()
-    }
 
     @Test
     fun `cancel coroutine scope before completion of poll & verify poll state`() = runTest {
@@ -93,19 +68,6 @@ internal class PollerTest {
     }
 
     @Test
-    fun `exceed the poll time & verify poll state`() = runTest {
-        val poller = createFinitePoller()
-        var count = 1
-        poller.poll { count++ }
-        advanceTimeBy(5_000)
-        poller.pollerStateFlow.test {
-            assertThat(expectMostRecentItem()).isEqualTo(PollerState.Complete)
-        }
-        advanceUntilIdle()
-        poller.stop()
-    }
-
-    @Test
     fun `poll every second & verify that it can still be polled in between`() = runTest {
         val poller = createFinitePoller()
         var count = 1
@@ -123,6 +85,37 @@ internal class PollerTest {
         poller.poll { count++ }
         advanceTimeBy(5_000)
         assertThat(poller.canPoll()).isFalse()
+        advanceUntilIdle()
+        poller.stop()
+    }
+
+    @Test
+    fun `exhaust retires & verify the behaviour`() = runTest {
+        val poller = createRetryLimitPoller(maxRetries = 2)
+        var count = 1
+        poller.poll { count++ }
+        assertThat(poller.canPoll()).isTrue()
+        advanceTimeBy(3_000)
+        assertThat(poller.canPoll()).isFalse()
+        poller.pollerStateFlow.test {
+            assertThat(expectMostRecentItem()).isEqualTo(PollerState.Complete)
+        }
+        advanceUntilIdle()
+        poller.stop()
+    }
+
+    @Test
+    fun `exhaust time & verify the behaviour`() = runTest {
+        val poller = createFinitePoller()
+        var count = 1
+        poller.poll { count++ }
+        val canPoll = poller.canPoll()
+        assertThat(canPoll).isTrue()
+        advanceTimeBy(5_000)
+        assertThat(poller.canPoll()).isFalse()
+        poller.pollerStateFlow.test {
+            assertThat(expectMostRecentItem()).isEqualTo(PollerState.Complete)
+        }
         advanceUntilIdle()
         poller.stop()
     }
