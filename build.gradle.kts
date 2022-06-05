@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "dev.mslalith"
-version = "0.3.0-alpha01"
+version = "0.3.0"
 
 repositories {
     mavenCentral()

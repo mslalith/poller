@@ -52,8 +52,8 @@ fun <T> Poller<T>.stopIfPolling() {
  * Create a new Poller instance
  *
  * @param coroutineScope The scope in which the poll should execute
- * @param pollInterval Time in millis for the poll to run after
- * @param pollStrategy The strategy to continue the poll
+ * @param pollInterval Time in millis between each poll
+ * @param pollStrategy The strategy for the poll to continue
  */
 fun <T> Poller.Companion.new(
     coroutineScope: CoroutineScope,
